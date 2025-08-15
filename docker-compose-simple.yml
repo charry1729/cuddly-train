@@ -1,0 +1,40 @@
+# CineStox Simplified Docker Compose (for older versions)
+# PostgreSQL Database
+postgres:
+  image: postgres:15-alpine
+  container_name: cinestox_postgres
+  environment:
+    POSTGRES_DB: cinestox
+    POSTGRES_USER: cinestox
+    POSTGRES_PASSWORD: password
+  ports:
+    - "5432:5432"
+  volumes:
+    - ./postgres_data:/var/lib/postgresql/data
+    - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+# Redis Cache
+redis:
+  image: redis:7-alpine
+  container_name: cinestox_redis
+  ports:
+    - "6379:6379"
+  volumes:
+    - ./redis_data:/data
+
+# CineStox Backend
+backend:
+  build: ./backend
+  container_name: cinestox_backend
+  ports:
+    - "8000:8000"
+  environment:
+    - DATABASE_URL=postgresql://cinestox:password@postgres:5432/cinestox
+    - REDIS_URL=redis://redis:6379
+    - ENVIRONMENT=development
+  volumes:
+    - ./backend:/app
+  depends_on:
+    - postgres
+    - redis
+  command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload 
